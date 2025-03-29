@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}
+  Login Page
+{% endblock %}
+{% block content %}
+  <div class="container login-container">
+      <h2 class="login-title">Login</h2>
+      <form method="POST" action="">
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+        </div>
+        <div class="form-group form-check">
+          <input type="checkbox" class="form-check-input" id="remember">
+          <label class="form-check-label" for="remember">Remember me</label>
+        </div>
+        <button type="submit" class="btn btn-primary">Login</button>
+      </form>
+      <div class="login-footer">
+        <p>Don't have an account? <a href="{{ url_for('register_page') }}">Register here</a></p>
+        <p><a href="#">Forgot password?</a></p>
+      </div>
+    </div>
+{% endblock %}
+{% block style %}
+  body {
+        background-color: #212121;
+        color: white;
+      }
+      .login-container {
+        max-width: 450px;
+        margin: 100px auto;
+        padding: 25px;
+        background-color: #303030;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      }
+      .form-control {
+        background-color: #424242;
+        color: white;
+        border: 1px solid #555;
+      }
+      .form-control:focus {
+        background-color: #424242;
+        color: white;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      }
+      .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        width: 100%;
+      }
+      .login-title {
+        text-align: center;
+        margin-bottom: 25px;
+      }
+      .login-footer {
+        text-align: center;
+        margin-top: 20px;
+      }
+{% endblock %}
+{% block script %}
+
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}
+  Register Page
+{% endblock %}
+{% block content %}
+  <div class="container register-container">
+      <h2 class="register-title">Create an Account</h2>
+      <form method="POST" action="">
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <label for="firstName">First Name</label>
+            <input type="text" class="form-control" id="firstName" name="firstName" placeholder="Enter your first name" required>
+          </div>
+          <div class="form-group col-md-6">
+            <label for="lastName">Last Name</label>
+            <input type="text" class="form-control" id="lastName" name="lastName" placeholder="Enter your last name" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+        </div>
+        <div class="form-group">
+          <label for="password1">Password</label>
+          <input type="password" class="form-control" id="password1" name="password1" placeholder="Create a password" required>
+          <small class="form-text text-muted">Password must be at least 8 characters long</small>
+        </div>
+        <div class="form-group">
+          <label for="password2">Confirm Password</label>
+          <input type="password" class="form-control" id="password2" name="password2" placeholder="Confirm your password" required>
+        </div>
+        <div class="form-group form-check">
+          <input type="checkbox" class="form-check-input" id="terms" required>
+          <label class="form-check-label" for="terms">I agree to the <a href="#">Terms & Conditions</a></label>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Account</button>
+      </form>
+      <div class="register-footer">
+        <p>Already have an account? <a href="{{ url_for('login_page') }}">Login here</a></p>
+      </div>
+    </div>
+{% endblock %}
+{% block style %}
+  body {
+        background-color: #212121;
+        color: white;
+      }
+      .register-container {
+        max-width: 500px;
+        margin: 80px auto;
+        padding: 25px;
+        background-color: #303030;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      }
+      .form-control {
+        background-color: #424242;
+        color: white;
+        border: 1px solid #555;
+      }
+      .form-control:focus {
+        background-color: #424242;
+        color: white;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      }
+      .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        width: 100%;
+      }
+      .register-title {
+        text-align: center;
+        margin-bottom: 25px;
+      }
+      .register-footer {
+        text-align: center;
+        margin-top: 20px;
+      }
+{% endblock %}
+{% block script %}
+
+{% endblock %}
