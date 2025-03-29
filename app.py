@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 
 genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-pro')
 
 firebase_config = {
     "apiKey": os.getenv('FIREBASE_API_KEY'),
