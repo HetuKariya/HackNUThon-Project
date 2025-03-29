@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}
+  Dashboard
+{% endblock %}
+{% block content %}
+  <div class="container dashboard-container">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="card text-white bg-dark mb-4">
+          <div class="card-header">User Profile</div>
+          <div class="card-body">
+            <div class="text-center mb-3">
+              <i class="fas fa-user-circle fa-5x"></i>
+            </div>
+            <h5 class="card-title">Welcome, {{ user.user_name }}</h5>
+            <p class="card-text">Email: {{ user.user_email }}</p>
+            <p class="card-text small">Account created: {{ user.created_at | default('Recently') }}</p>
+            <a href="#" class="btn btn-outline-light btn-sm">Edit Profile</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-8">
+        <div class="card text-white bg-dark mb-4">
+          <div class="card-header">Dashboard</div>
+          <div class="card-body">
+            <h5 class="card-title">Your Activity</h5>
+            <p class="card-text">Welcome to your dashboard! This is where you'll see your activity and personalized content.</p>
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> You are currently logged in via Firebase authentication
+            </div>
+            <div class="row mt-4">
+              <div class="col-md-6">
+                <div class="card bg-secondary mb-3">
+                  <div class="card-body">
+                    <h5 class="card-title">Recent Activity</h5>
+                    <p class="card-text">No recent activity to display.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card bg-secondary mb-3">
+                  <div class="card-body">
+                    <h5 class="card-title">Quick Actions</h5>
+                    <div class="list-group">
+                      <a href="#" class="list-group-item list-group-item-action bg-dark text-white">View Profile</a>
+                      <a href="#" class="list-group-item list-group-item-action bg-dark text-white">Account Settings</a>
+                      <a href="{{ url_for('logout') }}" class="list-group-item list-group-item-action bg-dark text-white">Logout</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block style %}
+  body {
+    background-color: #212121;
+    color: white;
+  }
+  .dashboard-container {
+    margin-top: 20px;
+  }
+  .card {
+    border: 1px solid #444;
+  }
+  .bg-dark {
+    background-color: #303030 !important;
+  }
+  .bg-secondary {
+    background-color: #424242 !important;
+  }
+  .list-group-item-action:hover {
+    background-color: #3a3a3a !important;
+  }
+{% endblock %}
