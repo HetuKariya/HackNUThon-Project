@@ -3,11 +3,15 @@ import pyrebase
 import os
 from dotenv import load_dotenv
 from datetime import datetime
+import google.generativeai as genai
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
+
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+model = genai.GenerativeModel('gemini-pro')
 
 firebase_config = {
     "apiKey": os.getenv('FIREBASE_API_KEY'),
@@ -103,6 +107,44 @@ def refresh_token():
     user = auth.refresh(session['refresh_token'])
     session['id_token'] = user['idToken']
     return user['idToken']
+
+@app.route('/gemini_chat', methods=['POST'])
+def gemini_chat():
+    if 'logged_in' not in session:
+        return jsonify({'response': 'Please log in to use the chatbot.'}), 401
+    data = request.json
+    user_message = data.get('message', '')
+    try:
+        system_prompt = """You are an agricultural AI assistant for NutriSoil, specializing in providing 
+        advice on soil health, crop management, and sustainable farming practices. 
+        Provide helpful, accurate information with a friendly tone."""
+
+        response = model.generate_content([
+            {"role": "user", "parts": [system_prompt]},
+            {"role": "model", "parts": ["I understand. I'll help with agricultural questions in a friendly way."]},
+            {"role": "user", "parts": [user_message]}
+        ])
+
+        if 'user_id' in session:
+            chat_data = {
+                "user_id": session['user_id'],
+                "user_message": user_message,
+                "assistant_response": response.text,
+                "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            db.child("chat_logs").push(chat_data, session.get('id_token'))
+
+        return jsonify({'response': response.text})
+    except Exception as e:
+        print(f"Error generating response: {e}")
+        return jsonify({'response': 'Sorry, I encountered an error. Please try again.'}), 500
+
+@app.route('/chatbot')
+def chatbot():
+    if 'logged_in' not in session:
+        flash('Please log in to use the chatbot.', 'warning')
+        return redirect(url_for('login'))
+    return render_template('chatbot.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
