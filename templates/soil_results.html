@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block title %}
+  Soil Analysis Results
+{% endblock %}
+{% block content %}
+  <div class="row">
+    <div class="col-md-10 offset-md-1">
+      <div class="card text-white bg-dark mb-4">
+        <div class="card-header">
+          <h4><i class="fas fa-flask mr-2"></i>Soil Analysis Results</h4>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <strong>Soil Sample Parameters:</strong>
+            pH: {{ results.ph }},
+            Nitrogen: {{ results.nitro }} mg/10g,
+            Phosphorus: {{ results.posh_nitro }} mg/10g,
+            Potassium: {{ results.pota_nitro }} mg/10g,
+            Moisture: {{ results.moist }}%,
+            EC: {{ results.ec }} u/10g,
+            Temperature: {{ results.temp }}°C
+          </div>
+
+          <div class="row mt-4">
+            <!-- Soil Type Card -->
+            <div class="col-md-6">
+              <div class="card bg-secondary mb-4">
+                <div class="card-header">
+                  <h5><i class="fas fa-mountain mr-2"></i>Soil Type</h5>
+                </div>
+                <div class="card-body">
+                  {% if results.model_predictions %}
+                    <div class="result-item">
+                      <strong>ML Model Prediction:</strong>
+                      <span class="badge badge-info">{{ results.ml_soil_type }}</span>
+                    </div>
+                  {% endif %}
+                  <div class="result-item mt-2">
+                    <strong>Classification:</strong>
+                    <span class="badge badge-primary">{{ results.soil_type }}</span>
+                  </div>
+
+                  <div class="mt-3">
+                    <h6>Soil Type Characteristics:</h6>
+                    <ul class="soil-info">
+                      {% if 'Very Acidic' in results.soil_type %}
+                        <li>pH below 4.5 - Extremely acidic conditions</li>
+                        <li>Nutrients like phosphorus, calcium and magnesium less available</li>
+                        <li>Suitable for acid-loving plants like blueberries, azaleas</li>
+                      {% elif 'Moderately Acidic' in results.soil_type %}
+                        <li>pH between 4.5 and 5.5 - Significantly acidic</li>
+                        <li>Many nutrients available but some may be limited</li>
+                        <li>Good for potatoes, strawberries, rhododendrons</li>
+                      {% elif 'Slightly Acidic' in results.soil_type %}
+                        <li>pH between 5.5 and 6.5 - Mildly acidic</li>
+                        <li>Optimal for nutrient availability</li>
+                        <li>Ideal for many vegetables and fruits</li>
+                      {% elif 'Neutral' in results.soil_type %}
+                        <li>pH between 6.5 and 7.5 - Balanced pH</li>
+                        <li>Excellent nutrient availability</li>
+                        <li>Suitable for most crops and plants</li>
+                      {% elif 'Mildly Alkaline' in results.soil_type %}
+                        <li>pH between 7.5 and 8.5 - Slightly basic</li>
+                        <li>Iron, manganese and phosphorus may be less available</li>
+                        <li>Good for asparagus, cabbage family, celery</li>
+                      {% elif 'Moderately Alkaline' in results.soil_type %}
+                        <li>pH between 8.5 and 9.5 - Significantly basic</li>
+                        <li>Many micronutrients less available</li>
+                        <li>Limited crop selection, some ornamentals adapt well</li>
+                      {% elif 'Highly Alkaline' in results.soil_type %}
+                        <li>pH above 9.5 - Extremely basic</li>
+                        <li>Severe nutrient deficiencies likely</li>
+                        <li>Very few plants grow well without soil amendment</li>
+                      {% endif %}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Crop Growth Card -->
+            <div class="col-md-6">
+              <div class="card bg-secondary mb-4">
+                <div class="card-header">
+                  <h5><i class="fas fa-leaf mr-2"></i>Crop Growth Potential</h5>
+                </div>
+                <div class="card-body">
+                  {% if results.model_predictions %}
+                    <div class="result-item">
+                      <strong>ML Model Prediction:</strong>
+                      <span class="badge badge-info">{{ results.ml_growth_condition }}</span>
+                    </div>
+                  {% endif %}
+                  <div class="result-item mt-2">
+                    <strong>Classification:</strong>
+                    <span class="badge
+                      {% if results.growth_condition == "Optimal Growth" %}badge-success
+                      {% elif results.growth_condition == "Good Growth" %}badge-info
+                      {% elif results.growth_condition == "Moderate Growth" %}badge-warning
+                      {% else %}badge-danger{% endif %}">
+                      {{ results.growth_condition }}
+                    </span>
+                  </div>
+
+                  <div class="mt-3">
+                    <h6>Growth Potential Details:</h6>
+                    <ul class="growth-info">
+                      {% if 'Optimal Growth' in results.growth_condition %}
+                        <li>Excellent conditions for most crops</li>
+                        <li>Balanced nutrients and ideal growing environment</li>
+                        <li>High yield potential with proper management</li>
+                      {% elif 'Good Growth' in results.growth_condition %}
+                        <li>Favorable conditions for many crops</li>
+                        <li>Minor adjustments may improve yields further</li>
+                        <li>Good yield potential with proper care</li>
+                      {% elif 'Moderate Growth' in results.growth_condition %}
+                        <li>Adequate conditions with some limitations</li>
+                        <li>Soil amendments recommended for better results</li>
+                        <li>Moderate yield potential, selected crops may do well</li>
+                      {% elif 'Poor Growth' in results.growth_condition %}
+                        <li>Significant limitations for most crops</li>
+                        <li>Major soil amendments needed before planting</li>
+                        <li>Consider soil remediation or alternative growing methods</li>
+                      {% endif %}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <!-- Fertilizer Recommendations -->
+            <div class="col-md-6">
+              <div class="card bg-secondary mb-4">
+                <div class="card-header">
+                  <h5><i class="fas fa-prescription-bottle mr-2"></i>Fertilizer Recommendations</h5>
+                </div>
+                <div class="card-body">
+                  <p>{{ results.fertilizer_advice | replace('\n', '<br>') | safe }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Additional Advice -->
+            <div class="col-md-6">
+              <div class="card bg-secondary mb-4">
+                <div class="card-header">
+                  <h5><i class="fas fa-lightbulb mr-2"></i>Additional Advice</h5>
+                </div>
+                <div class="card-body">
+                  {% if results.additional_advice %}
+                    <ul>
+                      {% for advice in results.additional_advice %}
+                        <li>{{ advice }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <p>No additional recommendations needed for this soil sample.</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center mt-2">
+            <a href="{{ url_for('soil_analysis') }}" class="btn btn-outline-light">
+              <i class="fas fa-arrow-left mr-2"></i>Analyze Another Sample
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light ml-3">
+              <i class="fas fa-tachometer-alt mr-2"></i>Back to Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block style %}
+  body {
+    background-color: #212121;
+    color: white;
+  }
+  .card {
+    border: 1px solid #444;
+  }
+  .bg-dark {
+    background-color: #303030 !important;
+  }
+  .bg-secondary {
+    background-color: #424242 !important;
+  }
+  .badge {
+    font-size: 100%;
+    padding: 0.4em 0.6em;
+  }
+  .result-item {
+    margin-bottom: 0.5rem;
+  }
+  .soil-info li, .growth-info li {
+    margin-bottom: 0.5rem;
+  }
+  .alert-info {
+    background-color: #0c5460;
+    border-color: #0c5460;
+    color: #d1ecf1;
+  }
+{% endblock %}

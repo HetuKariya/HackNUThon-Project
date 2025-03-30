@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}
+  Soil Analysis
+{% endblock %}
+{% block content %}
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      <div class="card text-white bg-dark mb-4">
+        <div class="card-header">
+          <h4><i class="fas fa-seedling mr-2"></i>Soil Analysis</h4>
+        </div>
+        <div class="card-body">
+          {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+          {% endif %}
+          
+          {% if not models_loaded %}
+            <div class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle mr-2"></i>ML models not loaded. Only rule-based analysis will be available.
+            </div>
+          {% endif %}
+          
+          <p class="lead">Enter your soil parameters below to analyze soil type and crop growth potential.</p>
+          
+          <form action="{{ url_for('analyze_soil') }}" method="post">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="ph">Soil pH (0-14)</label>
+                  <input type="number" class="form-control" id="ph" name="ph" min="0" max="14" step="0.1" required>
+                  <small class="form-text text-muted">pH measures acidity/alkalinity (7 is neutral)</small>
+                </div>
+                
+                <div class="form-group">
+                  <label for="nitro">Nitrogen (mg/10g)</label>
+                  <input type="number" class="form-control" id="nitro" name="nitro" min="0" step="0.1" required>
+                  <small class="form-text text-muted">Essential for leaf growth</small>
+                </div>
+                
+                <div class="form-group">
+                  <label for="posh_nitro">Phosphorus (mg/10g)</label>
+                  <input type="number" class="form-control" id="posh_nitro" name="posh_nitro" min="0" step="0.1" required>
+                  <small class="form-text text-muted">Important for root development</small>
+                </div>
+                
+                <div class="form-group">
+                  <label for="pota_nitro">Potassium (mg/10g)</label>
+                  <input type="number" class="form-control" id="pota_nitro" name="pota_nitro" min="0" step="0.1" required>
+                  <small class="form-text text-muted">Essential for overall plant health</small>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="moist">Moisture (%)</label>
+                  <input type="number" class="form-control" id="moist" name="moist" min="0" max="100" step="0.1" required>
+                  <small class="form-text text-muted">Optimal range is typically 25-35%</small>
+                </div>
+                
+                <div class="form-group">
+                  <label for="ec">Electrical Conductivity (u/10g)</label>
+                  <input type="number" class="form-control" id="ec" name="ec" min="0" step="0.1" required>
+                  <small class="form-text text-muted">Measures salinity and nutrient content</small>
+                </div>
+                
+                <div class="form-group">
+                  <label for="temp">Temperature (°C)</label>
+                  <input type="number" class="form-control" id="temp" name="temp" min="-10" max="60" step="0.1" required>
+                  <small class="form-text text-muted">Optimal soil temp is typically 18-28°C</small>
+                </div>
+                
+                <div class="form-group mt-4 pt-2">
+                  <button type="submit" class="btn btn-success btn-block">
+                    <i class="fas fa-microscope mr-2"></i>Analyze Soil
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block style %}
+  body {
+    background-color: #212121;
+    color: white;
+  }
+  .card {
+    border: 1px solid #444;
+  }
+  .bg-dark {
+    background-color: #303030 !important;
+  }
+  .form-control {
+    background-color: #424242;
+    border-color: #555;
+    color: white;
+  }
+  .form-control:focus {
+    background-color: #484848;
+    color: white;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+  label {
+    font-weight: 500;
+  }
+  .text-muted {
+    color: #adb5bd !important;
+  }
+{% endblock %}
