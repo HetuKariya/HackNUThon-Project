@@ -399,5 +399,11 @@ def analyze_soil():
         print(f"Error in soil analysis: {e}")
         return render_template('soil_analysis.html', user=session, error=f"An error occurred: {str(e)}")
 
+@app.route('/gallery')
+def gallery():
+    if 'logged_in' not in session:
+        return redirect(url_for('login'))
+    return render_template('gallery.html', user=session)
+
 if __name__ == '__main__':
     app.run(debug=True)

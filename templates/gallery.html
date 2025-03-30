@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}
+  Soil Sample Gallery
+{% endblock %}
+{% block content %}
+  <div class="row">
+    <div class="col-12">
+      <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-images mr-2"></i>Trends observed from the Dataset</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-success"><i class="fas fa-arrow-left mr-2"></i>Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample1.jpg') }}" class="card-img-top" alt="Soil Sample 1">
+        <div class="card-body">
+          <h5 class="card-title">0ml Water and 485nm Wavelength</h5>
+          <p class="card-text">pH vs 485nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample2.jpg') }}" class="card-img-top" alt="Soil Sample 2">
+        <div class="card-body">
+          <h5 class="card-title">25ml Water and 510nm Wavelength</h5>
+          <p class="card-text">pH vs 510nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample3.jpg') }}" class="card-img-top" alt="Soil Sample 3">
+        <div class="card-body">
+          <h5 class="card-title">50ml Water and 410nm Wavelength</h5>
+          <p class="card-text">pH vs 410nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample4.jpg') }}" class="card-img-top" alt="Soil Sample 4">
+        <div class="card-body">
+          <h5 class="card-title">0ml Water and 560nm Wavelength</h5>
+          <p class="card-text">Nitro vs 560nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample5.jpg') }}" class="card-img-top" alt="Soil Sample 5">
+        <div class="card-body">
+          <h5 class="card-title">25ml Water and 645nm Wavelength</h5>
+          <p class="card-text">Nitro vs 645nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample6.jpg') }}" class="card-img-top" alt="Soil Sample 6">
+        <div class="card-body">
+          <h5 class="card-title">50ml Water and 560nm Wavelength</h5>
+          <p class="card-text">Nitro vs 560nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample7.jpg') }}" class="card-img-top" alt="Soil Sample 7">
+        <div class="card-body">
+          <h5 class="card-title">0ml Water and 560nm Wavelength</h5>
+          <p class="card-text">Posh Nitro vs 560nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample8.jpg') }}" class="card-img-top" alt="Soil Sample 8">
+        <div class="card-body">
+          <h5 class="card-title">25ml Water and 900nm Wavelength</h5>
+          <p class="card-text">Posh Nitro vs 900nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample9.jpg') }}" class="card-img-top" alt="Soil Sample 9">
+        <div class="card-body">
+          <h5 class="card-title">50ml Water and 560nm Wavelength</h5>
+          <p class="card-text">Posh Nitro vs 560nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample10.jpg') }}" class="card-img-top" alt="Soil Sample 10">
+        <div class="card-body">
+          <h5 class="card-title">0ml Water and 560nm Wavelength</h5>
+          <p class="card-text">Pota Nitro vs 560nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample11.jpg') }}" class="card-img-top" alt="Soil Sample 11">
+        <div class="card-body">
+          <h5 class="card-title">25ml Water and 900nm Wavelength</h5>
+          <p class="card-text">Pota Nitro vs 900nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-white bg-dark mb-4">
+        <img src="{{ url_for('static', filename='images/soil_sample12.jpg') }}" class="card-img-top" alt="Soil Sample 12">
+        <div class="card-body">
+          <h5 class="card-title">50ml Water and 560nm Wavelength</h5>
+          <p class="card-text">Pota Nitro vs 560nm Wavelength Intensity</p>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block style %}
+  body {
+    background-color: #212121;
+    color: white;
+  }
+  .card {
+    border: 1px solid #444;
+    transition: transform 0.3s ease;
+    overflow: hidden;
+  }
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+  }
+  .bg-dark {
+    background-color: #303030 !important;
+  }
+  .card-img-top {
+    height: 220px;
+    object-fit: cover;
+  }
+  .page-header {
+    border-bottom: 1px solid #444;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+  }
+  .card-footer {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid #444;
+    color: #adb5bd;
+    font-size: 0.9rem;
+  }
+  .btn-success {
+    background-color: #2e7d32;
+    border-color: #2e7d32;
+  }
+  .btn-success:hover {
+    background-color: #246128;
+    border-color: #246128;
+  }
+  .text-muted {
+    color: #adb5bd !important;
+  }
+{% endblock %}
