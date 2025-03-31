@@ -405,21 +405,129 @@ def gallery():
         return redirect(url_for('login'))
     return render_template('gallery.html', user=session)
 
-
 @app.route('/spectral-analysis')
 def spectral_analysis():
     if 'logged_in' not in session:
         return redirect(url_for('login'))
 
-    model_results = load_model_results()
+    model_results = []
 
-    while len(model_results) < 12:
-        model_results.append(None)
+    for model_num in range(1, 13):
+        model_path = f'static/models/model_{model_num}.pkl'
+
+        result = {
+            'model_number': model_num,
+            'filename': f'model_{model_num}.pkl',
+            'metrics': {}
+        }
+
+        if os.path.exists(model_path):
+            result['file_size'] = round(os.path.getsize(model_path) / 1024, 2)  # Size in KB
+
+            try:
+                import pickle
+                with open(model_path, 'rb') as f:
+                    model = pickle.load(f)
+
+                if hasattr(model, 'score'):
+                    result['metrics']['accuracy'] = model.score
+                if hasattr(model, 'feature_importances_'):
+                    result['metrics']['top_feature'] = max(model.feature_importances_)
+
+            except Exception as e:
+                print(f"Error loading model {model_num}: {str(e)}")
+
+        try:
+            with open(f'static/results/model_{model_num}_plot1.txt', 'r') as f:
+                result['plot1_img'] = f.read()
+        except FileNotFoundError:
+            result['plot1_img'] = None
+
+        try:
+            with open(f'static/results/model_{model_num}_plot2.txt', 'r') as f:
+                result['plot2_img'] = f.read()
+        except FileNotFoundError:
+            result['plot2_img'] = None
+
+        model_results.append(result)
 
     return render_template('spectral_results.html',
                            user=session,
                            model_results=model_results)
 
+def load_model_results():
+    results = []
+
+    try:
+        if os.path.exists('static/results/all_model_results.json'):
+            with open('static/results/all_model_results.json', 'r') as f:
+                results = json.load(f)
+
+            for result in results:
+                model_num = result['model_number']
+                try:
+                    with open(f'static/results/model_{model_num}_plot1.txt', 'r') as f:
+                        result['plot1_img'] = f.read()
+                    with open(f'static/results/model_{model_num}_plot2.txt', 'r') as f:
+                        result['plot2_img'] = f.read()
+                except FileNotFoundError:
+                    print(f"Warning: Plot images for model {model_num} not found")
+
+                if 'metrics' not in result:
+                    result['metrics'] = {}
+                    try:
+                        with open(f'static/results/model_{model_num}_results.json', 'r') as f:
+                            model_data = json.load(f)
+                            if isinstance(model_data, dict) and 'metrics' in model_data:
+                                result['metrics'] = model_data['metrics']
+                            elif isinstance(model_data, dict):
+                                # If no metrics field, use the top-level keys as metrics
+                                result['metrics'] = {k: v for k, v in model_data.items()
+                                                     if k not in ['model_number', 'plot1_img', 'plot2_img', 'filename']}
+                    except (FileNotFoundError, json.JSONDecodeError):
+                        pass
+        else:
+            for model_num in range(1, 13):
+                model_result_path = f'static/results/model_{model_num}_results.json'
+                result = {'model_number': model_num, 'metrics': {}, 'filename': f'model_{model_num}.pkl'}
+
+                if os.path.exists(model_result_path):
+                    try:
+                        with open(model_result_path, 'r') as f:
+                            model_data = json.load(f)
+
+                        if isinstance(model_data, dict):
+                            if 'metrics' in model_data:
+                                result['metrics'] = model_data['metrics']
+                            else:
+                                result['metrics'] = {k: v for k, v in model_data.items()
+                                                     if k not in ['model_number', 'plot1_img', 'plot2_img', 'filename']}
+                                for k, v in model_data.items():
+                                    if k not in ['metrics']:
+                                        result[k] = v
+                    except (json.JSONDecodeError, IOError) as e:
+                        print(f"Error loading model {model_num} results: {str(e)}")
+
+                try:
+                    with open(f'static/results/model_{model_num}_plot1.txt', 'r') as f:
+                        result['plot1_img'] = f.read()
+                except FileNotFoundError:
+                    result['plot1_img'] = None
+
+                try:
+                    with open(f'static/results/model_{model_num}_plot2.txt', 'r') as f:
+                        result['plot2_img'] = f.read()
+                except FileNotFoundError:
+                    result['plot2_img'] = None
+
+                model_path = f'static/models/model_{model_num}.pkl'
+                if os.path.exists(model_path):
+                    result['file_size'] = os.path.getsize(model_path)
+
+                results.append(result)
+
+    except Exception as e:
+        print(f"Error loading model results: {str(e)}")
 
 def load_model_results():
     results = []
