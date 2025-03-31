@@ -1,0 +1,13 @@
+{
+    "model_number": 1,
+    "volume": "0ml",
+    "wavelength": 485,
+    "target_var": "Ph",
+    "correlation": 0.09140848111724904,
+    "r2": 0.1915298884423544,
+    "cv_r2": -17.920506383956937,
+    "mae": 0.3209744795543088,
+    "rmse": 0.35748193824444247,
+    "plotting_accuracy": 72.79877291912639,
+    "plotting_precision": 0.35748193824444247
+}

@@ -1,0 +1,13 @@
+{
+    "model_number": 11,
+    "volume": "50ml",
+    "wavelength": 560,
+    "target_var": "Posh Nitro (mg/10 g)",
+    "correlation": 0.29376893955909006,
+    "r2": -18.925962516097194,
+    "cv_r2": -22.04482467765048,
+    "mae": 0.04411512320740299,
+    "rmse": 0.08136535949036183,
+    "plotting_accuracy": 87.39567908359915,
+    "plotting_precision": 0.08136535949036183
+}

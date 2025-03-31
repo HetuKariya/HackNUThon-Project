@@ -1,0 +1,13 @@
+{
+    "model_number": 5,
+    "volume": "25ml",
+    "wavelength": 510,
+    "target_var": "Ph",
+    "correlation": -0.32892398608574874,
+    "r2": -2.5593493868625306,
+    "cv_r2": -1.828709594536513,
+    "mae": 0.2749233981777725,
+    "rmse": 0.35044197660734916,
+    "plotting_accuracy": 76.70140693408709,
+    "plotting_precision": 0.35044197660734916
+}

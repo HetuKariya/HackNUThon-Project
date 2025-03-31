@@ -1,0 +1,13 @@
+{
+    "model_number": 10,
+    "volume": "50ml",
+    "wavelength": 560,
+    "target_var": "Nitro (mg/10 g)",
+    "correlation": 0.2962750290631324,
+    "r2": -21.4071761416893,
+    "cv_r2": -20.256555555377815,
+    "mae": 0.03511582397376844,
+    "rmse": 0.06138947043182277,
+    "plotting_accuracy": 86.49391385624291,
+    "plotting_precision": 0.06138947043182277
+}

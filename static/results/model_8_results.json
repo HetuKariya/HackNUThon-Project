@@ -1,0 +1,13 @@
+{
+    "model_number": 8,
+    "volume": "25ml",
+    "wavelength": 900,
+    "target_var": "Pota Nitro (mg/10 g)",
+    "correlation": 0.13963589837034668,
+    "r2": -4.726633213140419,
+    "cv_r2": -75.3985735505976,
+    "mae": 0.03792108693432444,
+    "rmse": 0.05402205270880446,
+    "plotting_accuracy": 87.35963768855852,
+    "plotting_precision": 0.05402205270880446
+}
