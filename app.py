@@ -8,6 +8,7 @@ from datetime import datetime
 from groq import Groq
 import joblib
 import numpy as np
+import os
 
 load_dotenv()
 
@@ -32,6 +33,8 @@ firebase = pyrebase.initialize_app(firebase_config)
 auth = firebase.auth()
 db = firebase.database()
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(BASE_DIR, "models", "model.pkl")
 
 # ─────────────────────── Auth Routes ───────────────────────
 
