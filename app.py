@@ -1,21 +1,23 @@
-from flask import Flask, redirect, url_for, session, request, render_template, jsonify
+from flask import Flask, redirect, url_for, session, request, render_template, jsonify, flash
 import pyrebase
 import pandas as pd
 import os
+import json
 from dotenv import load_dotenv
 from datetime import datetime
-import google.generativeai as genai
+from groq import Groq
 import joblib
 import numpy as np
 
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')
+app.secret_key = os.getenv('SECRET_KEY', 'fallback-secret-key-change-in-production')
 
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-model = genai.GenerativeModel('gemini-1.5-pro')
+# Configure Groq client
+groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
 
+# Firebase config
 firebase_config = {
     "apiKey": os.getenv('FIREBASE_API_KEY'),
     "authDomain": os.getenv('FIREBASE_AUTH_DOMAIN'),
@@ -29,6 +31,9 @@ firebase_config = {
 firebase = pyrebase.initialize_app(firebase_config)
 auth = firebase.auth()
 db = firebase.database()
+
+
+# ─────────────────────── Auth Routes ───────────────────────
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -51,10 +56,10 @@ def login():
 
             return redirect(url_for('dashboard'))
         except Exception as e:
-            error_message = "Invalid credentials. Please try again."
-            return render_template('login.html', error=error_message)
+            return render_template('login.html', error="Invalid credentials. Please try again.")
 
     return render_template('login.html')
+
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -82,14 +87,30 @@ def signup():
 
             return redirect(url_for('dashboard'))
         except Exception as e:
-            error_code = e.args[1]['error']['message']
-            if error_code == 'EMAIL_EXISTS':
+            error_str = str(e)
+            if 'EMAIL_EXISTS' in error_str:
                 error_message = "Email already exists. Please use a different email."
+            elif 'WEAK_PASSWORD' in error_str:
+                error_message = "Password is too weak. Please use at least 6 characters."
             else:
                 error_message = "An error occurred during signup. Please try again."
             return render_template('signup.html', error=error_message)
 
     return render_template('signup.html')
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
+
+
+# ─────────────────────── Dashboard ───────────────────────
 
 @app.route('/dashboard')
 def dashboard():
@@ -97,50 +118,8 @@ def dashboard():
         return redirect(url_for('login'))
     return render_template('dashboard.html', user=session)
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
 
-@app.route('/')
-def index():
-    return redirect(url_for('login'))
-
-def refresh_token():
-    user = auth.refresh(session['refresh_token'])
-    session['id_token'] = user['idToken']
-    return user['idToken']
-
-@app.route('/gemini_chat', methods=['POST'])
-def gemini_chat():
-    if 'logged_in' not in session:
-        return jsonify({'response': 'Please log in to use the chatbot.'}), 401
-    data = request.json
-    user_message = data.get('message', '')
-    try:
-        system_prompt = """You are an agricultural AI assistant for NutriSoil, specializing in providing 
-        advice on soil health, crop management, and sustainable farming practices. 
-        Provide helpful, accurate information with a friendly tone."""
-
-        response = model.generate_content([
-            {"role": "user", "parts": [system_prompt]},
-            {"role": "model", "parts": ["I understand. I'll help with agricultural questions in a friendly way."]},
-            {"role": "user", "parts": [user_message]}
-        ])
-
-        if 'user_id' in session:
-            chat_data = {
-                "user_id": session['user_id'],
-                "user_message": user_message,
-                "assistant_response": response.text,
-                "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            db.child("chat_logs").push(chat_data, session.get('id_token'))
-
-        return jsonify({'response': response.text})
-    except Exception as e:
-        print(f"Error generating response: {e}")
-        return jsonify({'response': 'Sorry, I encountered an error. Please try again.'}), 500
+# ─────────────────────── Chatbot ───────────────────────
 
 @app.route('/chatbot')
 def chatbot():
@@ -148,6 +127,60 @@ def chatbot():
         flash('Please log in to use the chatbot.', 'warning')
         return redirect(url_for('login'))
     return render_template('chatbot.html')
+
+
+@app.route('/gemini_chat', methods=['POST'])
+def gemini_chat():
+    if 'logged_in' not in session:
+        return jsonify({'response': 'Please log in to use the chatbot.'}), 401
+
+    data = request.json
+    user_message = data.get('message', '')
+
+    try:
+        # Groq API call using LLaMA 3 (free & fast)
+        chat_completion = groq_client.chat.completions.create(
+            model='llama-3.3-70b-versatile',
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an agricultural AI assistant for NutriSoil, specializing in "
+                        "providing advice on soil health, crop management, and sustainable farming "
+                        "practices. Provide helpful, accurate information with a friendly tone."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": user_message
+                }
+            ],
+            temperature=0.7,
+            max_tokens=1024,
+        )
+
+        reply_text = chat_completion.choices[0].message.content
+
+        if 'user_id' in session:
+            chat_data = {
+                "user_id": session['user_id'],
+                "user_message": user_message,
+                "assistant_response": reply_text,
+                "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            try:
+                db.child("chat_logs").push(chat_data, session.get('id_token'))
+            except Exception:
+                pass  # Don't fail chat if DB write fails
+
+        return jsonify({'response': reply_text})
+
+    except Exception as e:
+        print(f"Error generating response: {e}")
+        return jsonify({'response': 'Sorry, I encountered an error. Please try again.'}), 500
+
+
+# ─────────────────────── ML Models ───────────────────────
 
 def load_models():
     try:
@@ -160,30 +193,31 @@ def load_models():
         print(f"Error loading models: {e}")
         return None, None, None, None
 
+
 model_soil, model_growth, le_soil, le_growth = load_models()
 
+
 def categorize_soil(pH):
-    """Soil categorization function"""
     if pd.isna(pH):
         return 'Unknown'
     elif pH < 4.5:
         return 'Very Acidic'
-    elif 4.5 <= pH < 5.5:
+    elif pH < 5.5:
         return 'Moderately Acidic'
-    elif 5.5 <= pH < 6.5:
+    elif pH < 6.5:
         return 'Slightly Acidic'
-    elif 6.5 <= pH < 7.5:
+    elif pH < 7.5:
         return 'Neutral'
-    elif 7.5 <= pH < 8.5:
+    elif pH < 8.5:
         return 'Mildly Alkaline'
-    elif 8.5 <= pH < 9.5:
+    elif pH < 9.5:
         return 'Moderately Alkaline'
     else:
         return 'Highly Alkaline'
 
+
 def categorize_growth(moisture, ec, temp, nitrogen, phosphorus, potassium):
     score = 0
-
     if 25 <= moisture <= 35:
         score += 40
     elif (20 <= moisture < 25) or (35 < moisture <= 45):
@@ -209,33 +243,34 @@ def categorize_growth(moisture, ec, temp, nitrogen, phosphorus, potassium):
 
     if nitrogen >= 30:
         score += 10
-    elif 20 <= nitrogen < 30:
+    elif nitrogen >= 20:
         score += 7
-    elif 10 <= nitrogen < 20:
+    elif nitrogen >= 10:
         score += 4
 
     if phosphorus >= 25:
         score += 10
-    elif 15 <= phosphorus < 25:
+    elif phosphorus >= 15:
         score += 7
-    elif 5 <= phosphorus < 15:
+    elif phosphorus >= 5:
         score += 4
 
     if potassium >= 25:
         score += 10
-    elif 15 <= potassium < 25:
+    elif potassium >= 15:
         score += 7
-    elif 5 <= potassium < 15:
+    elif potassium >= 5:
         score += 4
 
     if score >= 75:
         return "Optimal Growth"
-    elif 50 <= score < 75:
+    elif score >= 50:
         return "Good Growth"
-    elif 30 <= score < 50:
+    elif score >= 30:
         return "Moderate Growth"
     else:
         return "Poor Growth"
+
 
 def recommend_fertilizer(soil_type, n_level, p_level, k_level):
     base_recommendations = {
@@ -249,96 +284,73 @@ def recommend_fertilizer(soil_type, n_level, p_level, k_level):
     }
 
     npk_recommendations = []
-
     if n_level < 10:
-        npk_recommendations.append(
-            "Low Nitrogen: Apply high-nitrogen fertilizer like blood meal, fish emulsion, or urea.")
-    elif 10 <= n_level < 20:
+        npk_recommendations.append("Low Nitrogen: Apply high-nitrogen fertilizer like blood meal, fish emulsion, or urea.")
+    elif n_level < 20:
         npk_recommendations.append("Medium Nitrogen: Apply balanced NPK fertilizer.")
 
     if p_level < 10:
         npk_recommendations.append("Low Phosphorus: Apply rock phosphate, bone meal, or phosphate fertilizers.")
-    elif 10 <= p_level < 20:
+    elif p_level < 20:
         npk_recommendations.append("Medium Phosphorus: Consider light application of phosphorus-containing fertilizer.")
 
     if k_level < 10:
         npk_recommendations.append("Low Potassium: Apply wood ash, greensand, or potassium sulfate.")
-    elif 10 <= k_level < 20:
+    elif k_level < 20:
         npk_recommendations.append("Medium Potassium: Consider light application of potassium-containing fertilizer.")
 
     base_rec = base_recommendations.get(soil_type, "No specific soil pH recommendation.")
     npk_rec = " ".join(npk_recommendations)
-
     if npk_rec:
         return f"{base_rec}\n{npk_rec}"
     else:
         return f"{base_rec}\nNutrient levels (NPK) appear sufficient."
 
+
+# ─────────────────────── Soil Analysis Routes ───────────────────────
+
 @app.route('/soil-analysis')
 def soil_analysis():
     if 'logged_in' not in session:
         return redirect(url_for('login'))
-
     models_loaded = all([model_soil, model_growth, le_soil, le_growth])
     return render_template('soil_analysis.html', user=session, models_loaded=models_loaded)
+
 
 @app.route('/analyze-soil', methods=['POST'])
 def analyze_soil():
     if 'logged_in' not in session:
         return redirect(url_for('login'))
     try:
-        ph = float(request.form.get('ph', 0))
-        nitro = float(request.form.get('nitro', 0))
-        posh_nitro = float(request.form.get('posh_nitro', 0))
-        pota_nitro = float(request.form.get('pota_nitro', 0))
-        moist = float(request.form.get('moist', 0))
-        ec = float(request.form.get('ec', 0))
-        temp = float(request.form.get('temp', 0))
+        ph = max(0, min(14, float(request.form.get('ph', 0))))
+        nitro = max(0, float(request.form.get('nitro', 0)))
+        posh_nitro = max(0, float(request.form.get('posh_nitro', 0)))
+        pota_nitro = max(0, float(request.form.get('pota_nitro', 0)))
+        moist = max(0, float(request.form.get('moist', 0)))
+        ec = max(0, float(request.form.get('ec', 0)))
+        temp = max(-10, min(60, float(request.form.get('temp', 0))))
 
-        ph = max(0, min(14, ph))
-        nitro = max(0, nitro)
-        posh_nitro = max(0, posh_nitro)
-        pota_nitro = max(0, pota_nitro)
-        moist = max(0, moist)
-        ec = max(0, ec)
-        temp = max(-10, min(60, temp))
+        manual_soil_type = categorize_soil(ph)
+        manual_growth_condition = categorize_growth(moist, ec, temp, nitro, posh_nitro, pota_nitro)
+        fertilizer_advice = recommend_fertilizer(manual_soil_type, nitro, posh_nitro, pota_nitro)
 
         if not all([model_soil, model_growth, le_soil, le_growth]):
-            manual_soil_type = categorize_soil(ph)
-            manual_growth_condition = categorize_growth(moist, ec, temp, nitro, posh_nitro, pota_nitro)
-            fertilizer_advice = recommend_fertilizer(manual_soil_type, nitro, posh_nitro, pota_nitro)
-
             results = {
                 'model_predictions': False,
                 'soil_type': manual_soil_type,
                 'growth_condition': manual_growth_condition,
                 'fertilizer_advice': fertilizer_advice,
-                'ph': ph,
-                'nitro': nitro,
-                'posh_nitro': posh_nitro,
-                'pota_nitro': pota_nitro,
-                'moist': moist,
-                'ec': ec,
-                'temp': temp
+                'ph': ph, 'nitro': nitro, 'posh_nitro': posh_nitro,
+                'pota_nitro': pota_nitro, 'moist': moist, 'ec': ec, 'temp': temp
             }
         else:
-            manual_soil_type = categorize_soil(ph)
-            manual_growth_condition = categorize_growth(moist, ec, temp, nitro, posh_nitro, pota_nitro)
-            fertilizer_advice = recommend_fertilizer(manual_soil_type, nitro, posh_nitro, pota_nitro)
-
             input_data_soil = np.array([[ph, nitro, posh_nitro, pota_nitro]])
-            if hasattr(model_soil, 'named_steps') and 'scaler' in model_soil.named_steps:
-                prediction_soil_idx = model_soil.predict(input_data_soil)[0]
-            else:
-                prediction_soil_idx = model_soil.predict(input_data_soil)[0]
-            predicted_soil_type = le_soil.inverse_transform([prediction_soil_idx])[0]
+            predicted_soil_type = le_soil.inverse_transform(
+                [model_soil.predict(input_data_soil)[0]])[0]
 
             input_data_growth = np.array([[moist, ec, temp, nitro, posh_nitro, pota_nitro]])
-            if hasattr(model_growth, 'named_steps') and 'scaler' in model_growth.named_steps:
-                prediction_growth_idx = model_growth.predict(input_data_growth)[0]
-            else:
-                prediction_growth_idx = model_growth.predict(input_data_growth)[0]
-            predicted_growth_condition = le_growth.inverse_transform([prediction_growth_idx])[0]
+            predicted_growth_condition = le_growth.inverse_transform(
+                [model_growth.predict(input_data_growth)[0]])[0]
 
             additional_advice = []
             if ph < 5.5:
@@ -354,7 +366,6 @@ def analyze_soil():
                 additional_advice.append("Low phosphorus may cause poor root development and delayed flowering")
             if pota_nitro < 20:
                 additional_advice.append("Low potassium may reduce disease resistance and fruit quality")
-
             if moist < 20:
                 additional_advice.append("Consider irrigation systems to improve soil moisture")
             elif moist > 40:
@@ -368,36 +379,35 @@ def analyze_soil():
                 'growth_condition': manual_growth_condition,
                 'fertilizer_advice': fertilizer_advice,
                 'additional_advice': additional_advice,
-                'ph': ph,
-                'nitro': nitro,
-                'posh_nitro': posh_nitro,
-                'pota_nitro': pota_nitro,
-                'moist': moist,
-                'ec': ec,
-                'temp': temp
+                'ph': ph, 'nitro': nitro, 'posh_nitro': posh_nitro,
+                'pota_nitro': pota_nitro, 'moist': moist, 'ec': ec, 'temp': temp
             }
 
             if 'user_id' in session and 'id_token' in session:
                 analysis_data = {
                     "user_id": session['user_id'],
-                    "ph": ph,
-                    "nitro": nitro,
-                    "posh_nitro": posh_nitro,
-                    "pota_nitro": pota_nitro,
-                    "moist": moist,
-                    "ec": ec,
-                    "temp": temp,
+                    "ph": ph, "nitro": nitro, "posh_nitro": posh_nitro,
+                    "pota_nitro": pota_nitro, "moist": moist, "ec": ec, "temp": temp,
                     "soil_type": manual_soil_type,
                     "growth_condition": manual_growth_condition,
                     "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                 }
+                try:
+                    db.child("soil_analyses").push(analysis_data, session.get('id_token'))
+                except Exception:
+                    pass
 
-                db.child("soil_analyses").push(analysis_data, session.get('id_token'))
         return render_template('soil_results.html', user=session, results=results)
 
     except Exception as e:
         print(f"Error in soil analysis: {e}")
-        return render_template('soil_analysis.html', user=session, error=f"An error occurred: {str(e)}")
+        models_loaded = all([model_soil, model_growth, le_soil, le_growth])
+        return render_template('soil_analysis.html', user=session,
+                               models_loaded=models_loaded,
+                               error=f"An error occurred: {str(e)}")
+
+
+# ─────────────────────── Gallery & Spectral ───────────────────────
 
 @app.route('/gallery')
 def gallery():
@@ -405,204 +415,29 @@ def gallery():
         return redirect(url_for('login'))
     return render_template('gallery.html', user=session)
 
+
 @app.route('/spectral-analysis')
 def spectral_analysis():
     if 'logged_in' not in session:
         return redirect(url_for('login'))
 
     model_results = []
-
     for model_num in range(1, 13):
-        model_path = f'static/models/model_{model_num}.pkl'
-
         result = {
             'model_number': model_num,
             'filename': f'model_{model_num}.pkl',
-            'metrics': {}
+            'metrics': {},
+            'plot1_img': None,
+            'plot2_img': None
         }
-
+        model_path = f'static/models/model_{model_num}.pkl'
         if os.path.exists(model_path):
-            result['file_size'] = round(os.path.getsize(model_path) / 1024, 2)  # Size in KB
-
-            try:
-                import pickle
-                with open(model_path, 'rb') as f:
-                    model = pickle.load(f)
-
-                if hasattr(model, 'score'):
-                    result['metrics']['accuracy'] = model.score
-                if hasattr(model, 'feature_importances_'):
-                    result['metrics']['top_feature'] = max(model.feature_importances_)
-
-            except Exception as e:
-                print(f"Error loading model {model_num}: {str(e)}")
-
-        try:
-            with open(f'static/results/model_{model_num}_plot1.txt', 'r') as f:
-                result['plot1_img'] = f.read()
-        except FileNotFoundError:
-            result['plot1_img'] = None
-
-        try:
-            with open(f'static/results/model_{model_num}_plot2.txt', 'r') as f:
-                result['plot2_img'] = f.read()
-        except FileNotFoundError:
-            result['plot2_img'] = None
+            result['file_size'] = round(os.path.getsize(model_path) / 1024, 2)
 
         model_results.append(result)
 
-    return render_template('spectral_results.html',
-                           user=session,
-                           model_results=model_results)
+    return render_template('spectral_results.html', user=session, model_results=model_results)
 
-def load_model_results():
-    results = []
 
-    try:
-        if os.path.exists('static/results/all_model_results.json'):
-            with open('static/results/all_model_results.json', 'r') as f:
-                results = json.load(f)
-
-            for result in results:
-                model_num = result['model_number']
-                try:
-                    with open(f'static/results/model_{model_num}_plot1.txt', 'r') as f:
-                        result['plot1_img'] = f.read()
-                    with open(f'static/results/model_{model_num}_plot2.txt', 'r') as f:
-                        result['plot2_img'] = f.read()
-                except FileNotFoundError:
-                    print(f"Warning: Plot images for model {model_num} not found")
-
-                if 'metrics' not in result:
-                    result['metrics'] = {}
-                    try:
-                        with open(f'static/results/model_{model_num}_results.json', 'r') as f:
-                            model_data = json.load(f)
-                            if isinstance(model_data, dict) and 'metrics' in model_data:
-                                result['metrics'] = model_data['metrics']
-                            elif isinstance(model_data, dict):
-                                # If no metrics field, use the top-level keys as metrics
-                                result['metrics'] = {k: v for k, v in model_data.items()
-                                                     if k not in ['model_number', 'plot1_img', 'plot2_img', 'filename']}
-                    except (FileNotFoundError, json.JSONDecodeError):
-                        pass
-        else:
-            for model_num in range(1, 13):
-                model_result_path = f'static/results/model_{model_num}_results.json'
-                result = {'model_number': model_num, 'metrics': {}, 'filename': f'model_{model_num}.pkl'}
-
-                if os.path.exists(model_result_path):
-                    try:
-                        with open(model_result_path, 'r') as f:
-                            model_data = json.load(f)
-
-                        if isinstance(model_data, dict):
-                            if 'metrics' in model_data:
-                                result['metrics'] = model_data['metrics']
-                            else:
-                                result['metrics'] = {k: v for k, v in model_data.items()
-                                                     if k not in ['model_number', 'plot1_img', 'plot2_img', 'filename']}
-                                for k, v in model_data.items():
-                                    if k not in ['metrics']:
-                                        result[k] = v
-                    except (json.JSONDecodeError, IOError) as e:
-                        print(f"Error loading model {model_num} results: {str(e)}")
-
-                try:
-                    with open(f'static/results/model_{model_num}_plot1.txt', 'r') as f:
-                        result['plot1_img'] = f.read()
-                except FileNotFoundError:
-                    result['plot1_img'] = None
-
-                try:
-                    with open(f'static/results/model_{model_num}_plot2.txt', 'r') as f:
-                        result['plot2_img'] = f.read()
-                except FileNotFoundError:
-                    result['plot2_img'] = None
-
-                model_path = f'static/models/model_{model_num}.pkl'
-                if os.path.exists(model_path):
-                    result['file_size'] = os.path.getsize(model_path)
-
-                results.append(result)
-
-    except Exception as e:
-        print(f"Error loading model results: {str(e)}")
-
-def load_model_results():
-    results = []
-
-    try:
-        if os.path.exists('static/results/all_model_results.json'):
-            with open('static/results/all_model_results.json', 'r') as f:
-                results = json.load(f)
-
-            for result in results:
-                model_num = result['model_number']
-                try:
-                    with open(f'static/results/model_{model_num}_plot1.txt', 'r') as f:
-                        result['plot1_img'] = f.read()
-                    with open(f'static/results/model_{model_num}_plot2.txt', 'r') as f:
-                        result['plot2_img'] = f.read()
-                except FileNotFoundError:
-                    print(f"Warning: Plot images for model {model_num} not found")
-
-                if 'metrics' not in result:
-                    result['metrics'] = {}
-                    try:
-                        with open(f'static/results/model_{model_num}_results.json', 'r') as f:
-                            model_data = json.load(f)
-                            if isinstance(model_data, dict) and 'metrics' in model_data:
-                                result['metrics'] = model_data['metrics']
-                            elif isinstance(model_data, dict):
-                                # If no metrics field, use the top-level keys as metrics
-                                result['metrics'] = {k: v for k, v in model_data.items()
-                                                     if k not in ['model_number', 'plot1_img', 'plot2_img', 'filename']}
-                    except (FileNotFoundError, json.JSONDecodeError):
-                        pass
-        else:
-            for model_num in range(1, 13):
-                model_result_path = f'static/results/model_{model_num}_results.json'
-                result = {'model_number': model_num, 'metrics': {}, 'filename': f'model_{model_num}.pkl'}
-
-                if os.path.exists(model_result_path):
-                    try:
-                        with open(model_result_path, 'r') as f:
-                            model_data = json.load(f)
-
-                        if isinstance(model_data, dict):
-                            if 'metrics' in model_data:
-                                result['metrics'] = model_data['metrics']
-                            else:
-                                result['metrics'] = {k: v for k, v in model_data.items()
-                                                     if k not in ['model_number', 'plot1_img', 'plot2_img', 'filename']}
-                                for k, v in model_data.items():
-                                    if k not in ['metrics']:
-                                        result[k] = v
-                    except (json.JSONDecodeError, IOError) as e:
-                        print(f"Error loading model {model_num} results: {str(e)}")
-
-                try:
-                    with open(f'static/results/model_{model_num}_plot1.txt', 'r') as f:
-                        result['plot1_img'] = f.read()
-                except FileNotFoundError:
-                    result['plot1_img'] = None
-
-                try:
-                    with open(f'static/results/model_{model_num}_plot2.txt', 'r') as f:
-                        result['plot2_img'] = f.read()
-                except FileNotFoundError:
-                    result['plot2_img'] = None
-
-                model_path = f'static/models/model_{model_num}.pkl'
-                if os.path.exists(model_path):
-                    result['file_size'] = os.path.getsize(model_path)
-
-                results.append(result)
-
-    except Exception as e:
-        print(f"Error loading model results: {str(e)}")
-
-    return results
 if __name__ == '__main__':
     app.run(debug=True)
